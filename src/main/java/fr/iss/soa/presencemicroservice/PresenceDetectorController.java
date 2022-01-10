@@ -1,6 +1,5 @@
 package fr.iss.soa.presencemicroservice;
 
-import org.apache.http.entity.ContentType;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,11 +16,11 @@ import java.util.TimerTask;
 
 @RestController
 public class PresenceDetectorController {
-    private ArrayList<PresenceDetector> presenceDetectors = new ArrayList<>();
+    private final ArrayList<PresenceDetector> presenceDetectors = new ArrayList<>();
 
-    private String ip = "192.168.43.202:8080";
+    private final String ip = "http://127.0.0.1:8080";
 
-    public PresenceDetectorController() throws URISyntaxException {
+    public PresenceDetectorController() {
         //Simulate a presence in room 11 every 5 seconds
         Timer t = new Timer();
         t.schedule(new TimerTask() {
@@ -71,7 +70,7 @@ public class PresenceDetectorController {
 
     public void sendPresenceDetected(int id) throws URISyntaxException {
         System.out.println("Trying to execute POST request.");
-        URI centralService = new URI("http://" + ip + "/presence-event/" + id);
+        URI centralService = new URI(ip + "/presence-event/" + id);
         RestTemplate restTemplate = new RestTemplate();
         ResponseEntity<String> response = restTemplate.postForEntity(centralService, null, String.class);
 
