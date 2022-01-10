@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
@@ -45,6 +46,18 @@ public class PresenceDetectorController {
                 }
             }
         }, 0, 30*1000);
+        //Simulate a presence in room 114 every 30 seconds
+        Timer t2 = new Timer();
+        t2.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                try {
+                    sendPresenceDetected(114);
+                } catch (URISyntaxException e) {
+                    e.printStackTrace();
+                }
+            }
+        }, 0, 30*1000);
     }
 
     @GetMapping("/detectors")
@@ -69,13 +82,17 @@ public class PresenceDetectorController {
     }
 
     public void sendPresenceDetected(int id) throws URISyntaxException {
-        System.out.println("Trying to execute POST request.");
+        System.out.println("Trying to execute POST request to " + id);
         URI centralService = new URI(ip + "/presence-event/" + id);
         RestTemplate restTemplate = new RestTemplate();
-        ResponseEntity<String> response = restTemplate.postForEntity(centralService, null, String.class);
+        try {
+            ResponseEntity<String> response = restTemplate.postForEntity(centralService, null, String.class);
 
-        if (response.getStatusCode() != HttpStatus.OK)
-            System.err.println("Oops, " + id + " does not exist.");
+            if (response.getStatusCode() != HttpStatus.OK)
+                System.err.println("Oops, " + id + " does not exist.");
+        } catch (ResourceAccessException e) {
+            e.printStackTrace();
+        }
     }
 
 }
