@@ -1,5 +1,8 @@
 package fr.iss.soa.presencemicroservice;
 
+import com.netflix.appinfo.InstanceInfo;
+import com.netflix.discovery.EurekaClient;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -8,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
+import javax.annotation.PostConstruct;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -19,9 +23,13 @@ import java.util.TimerTask;
 public class PresenceDetectorController {
     private final ArrayList<PresenceDetector> presenceDetectors = new ArrayList<>();
 
-    private final String ip = "http://127.0.0.1:8080";
+    private final String centralName = "central-microservice";
 
-    public PresenceDetectorController() {
+    @Autowired
+    private EurekaClient eurekaClient;
+
+    @PostConstruct
+    public void init() {
         //Simulate a presence in room 11 every 5 seconds
         Timer t = new Timer();
         t.schedule(new TimerTask() {
@@ -60,6 +68,17 @@ public class PresenceDetectorController {
         }, 0, 30*1000);
     }
 
+    private String getBaseServiceUrl(String serviceName) {
+        InstanceInfo service = eurekaClient
+            .getApplication(serviceName)
+            .getInstances()
+            .get(0);
+
+        String hostName = service.getHostName();
+        int port = service.getPort();
+        return "http://" + hostName + ":" + port;
+    }
+
     @GetMapping("/detectors")
     public ArrayList<PresenceDetector> getDetectors() {
 
@@ -83,7 +102,8 @@ public class PresenceDetectorController {
 
     public void sendPresenceDetected(int id) throws URISyntaxException {
         System.out.println("Trying to execute POST request to " + id);
-        URI centralService = new URI(ip + "/presence-event/" + id);
+
+        URI centralService = new URI(getBaseServiceUrl(centralName) + "/presence-event/" + id);
         RestTemplate restTemplate = new RestTemplate();
         try {
             ResponseEntity<String> response = restTemplate.postForEntity(centralService, null, String.class);
